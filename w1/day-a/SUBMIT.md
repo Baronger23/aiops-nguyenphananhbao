@@ -4,7 +4,6 @@
 
 - `assignment.ipynb`: notebook có EDA, bộ phát hiện, tinh chỉnh tham số, đánh giá, vẽ kết quả và nhận xét ngắn.
 - `isolation_forest_model.joblib`: model Isolation Forest đã train kèm danh sách đặc trưng.
-- `knowledge_check.png`: ảnh trả lời ngắn phần kiểm tra kiến thức.
 - `data/machine_temperature_system_failure.csv`: bộ dữ liệu NAB thuộc nhóm `realKnownCause`.
 
 ## Bộ dữ liệu
