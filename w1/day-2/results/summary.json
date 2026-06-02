@@ -1,0 +1,40 @@
+{
+  "total_lines": 2000,
+  "unique_templates": 17,
+  "best_sim_th": 0.5,
+  "spike_template_id": 10,
+  "spike_time": "2008-11-10 10:30:00",
+  "spike_rule": "3-sigma",
+  "new_template_detected": true,
+  "new_template": "CRITICAL Payment database corrupted at <*> with code <*>",
+  "similar_pairs": [
+    [
+      0.5091190182524707,
+      "dfs.FSNamesystem: BLOCK* NameSystem.addStoredBlock: blockMap updated: <*> is added to <*> size <*>",
+      "dfs.FSNamesystem: BLOCK* NameSystem.delete: <*> is added to invalidSet of <*>"
+    ],
+    [
+      0.42730726381328626,
+      "dfs.DataNode$DataXceiver: <*> exception while serving <*> to <*>",
+      "dfs.DataNode$DataXceiver: <*> Served block <*> to <*>"
+    ],
+    [
+      0.42027569504096035,
+      "dfs.DataNode$PacketResponder: PacketResponder <*> for block <*> terminating",
+      "dfs.DataNode$PacketResponder: Received block <*> of size <*> from <*>"
+    ],
+    [
+      0.37494350076177263,
+      "dfs.FSNamesystem: BLOCK* NameSystem.delete: <*> is added to invalidSet of <*>",
+      "dfs.FSNamesystem: BLOCK* NameSystem.allocateBlock: <*> <*>"
+    ],
+    [
+      0.36795029680551894,
+      "dfs.DataNode$DataXceiver: Receiving block <*> src: <*> dest: <*>",
+      "dfs.DataNode$DataXceiver: <*> Served block <*> to <*>"
+    ]
+  ],
+  "spike_count_5min": 64,
+  "spike_mean_5min": 0.73,
+  "spike_z_score": 12.66
+}
