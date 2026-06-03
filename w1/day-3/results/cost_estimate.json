@@ -1,0 +1,35 @@
+[
+  {
+    "tier": "Small",
+    "services": 10,
+    "logs_per_day": "50 GB",
+    "metric_events_sec": 100000,
+    "storage_cost": 235.98,
+    "compute_cost": 475.0,
+    "network_cost": 50.74,
+    "self_host_total": 761.72,
+    "datadog_total": 904.92
+  },
+  {
+    "tier": "Medium",
+    "services": 100,
+    "logs_per_day": "500 GB",
+    "metric_events_sec": 1000000,
+    "storage_cost": 2359.8,
+    "compute_cost": 4750.0,
+    "network_cost": 507.36,
+    "self_host_total": 7617.16,
+    "datadog_total": 9049.2
+  },
+  {
+    "tier": "Large",
+    "services": 1000,
+    "logs_per_day": "5120 GB",
+    "metric_events_sec": 10000000,
+    "storage_cost": 23760.0,
+    "compute_cost": 47632.0,
+    "network_cost": 5145.6,
+    "self_host_total": 76537.6,
+    "datadog_total": 91392.0
+  }
+]
