@@ -1,0 +1,3 @@
+# pipeline.py uses only Python standard library.
+# stream_generator.py requires requests.
+requests
