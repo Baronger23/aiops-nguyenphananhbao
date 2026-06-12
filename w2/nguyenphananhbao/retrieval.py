@@ -250,10 +250,14 @@ def retrieve_and_vote(query: dict, history: list[dict], top_k: int = 3) -> dict:
             "actions_taken": h["actions_taken"]
         })
         
+        seen_actions_for_neighbor = set()
         for action_str in h.get("actions_taken", []):
             mapped_action = map_history_action_to_catalog(action_str, live_primary, hist_primary)
             param_key = json.dumps(mapped_action["params"], sort_keys=True)
             action_key = (mapped_action["name"], param_key)
+            if action_key in seen_actions_for_neighbor:
+                continue
+            seen_actions_for_neighbor.add(action_key)
             
             if action_key not in votes:
                 votes[action_key] = {

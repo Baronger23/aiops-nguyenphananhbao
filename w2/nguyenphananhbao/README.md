@@ -81,10 +81,10 @@ graph TD
    ```
 
 2. **Run the Engine on an Incident**:
-   Run the engine CLI using the `decide` command:
+   From this submission directory (`nguyenphananhbao`), run the engine CLI using the `decide` command and point it at the provided data pack:
    ```bash
-   python engine.py decide --incident eval/E01.json \
-                           --history incidents_history.json \
+   python engine.py decide --incident ../data-pack/eval/E01.json \
+                           --history ../data-pack/incidents_history.json \
                            --actions actions.yaml
    ```
 
@@ -93,8 +93,8 @@ graph TD
    ```bash
    # In PowerShell (Windows):
    if (Test-Path audit.jsonl) { Remove-Item audit.jsonl }
-   1..8 | ForEach-Object { $i = "{0:D2}" -f $_; python engine.py decide --incident eval/E$i.json }
-   python grade.py --audit audit.jsonl --expected eval/expected.json
+   1..8 | ForEach-Object { $i = "{0:D2}" -f $_; python engine.py decide --incident ../data-pack/eval/E$i.json --history ../data-pack/incidents_history.json --actions actions.yaml }
+   python ../data-pack/grade.py --audit audit.jsonl --expected ../data-pack/eval/expected.json
    ```
 
 Expected Output: `Correct: 8/8` with an auto-rubric estimate of `85/85` points.

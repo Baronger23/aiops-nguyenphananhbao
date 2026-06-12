@@ -40,6 +40,9 @@ def select_action(retrieval_results: dict, actions_catalog: list[dict]) -> dict:
             "evidence": {
                 "message": "Novel incident detected. Similarity is below OOD threshold (0.35).",
                 "max_similarity": max_sim,
+                "ood_threshold": 0.35,
+                "candidate_votes": candidates,
+                "evidence_neighbors": evidence,
                 "neighbors_searched": len(evidence)
             }
         }
