@@ -1,0 +1,302 @@
+[
+  {
+    "incident_id": "INC-2025-11-08",
+    "title": "Payment connection pool exhaustion",
+    "root_cause_service": "payment-svc",
+    "root_cause_class": "connection_pool_exhaustion",
+    "services": ["payment-svc", "checkout-svc", "edge-lb"],
+    "severity": "crit",
+    "fingerprints": ["payment-svc|db_connection_pool_used_ratio|crit", "payment-svc|latency_p99_ms|crit", "checkout-svc|downstream_payment_error_rate|crit"],
+    "actions": ["Rollback payment-svc v3.2 to v3.1", "Increase payment DB pool from 50 to 100", "Check payments-db active connections"]
+  },
+  {
+    "incident_id": "INC-2026-05-10",
+    "title": "Payment DB saturation after deploy",
+    "root_cause_service": "payment-svc",
+    "root_cause_class": "connection_pool_exhaustion",
+    "services": ["payment-svc", "checkout-svc", "edge-lb", "notification-svc"],
+    "severity": "crit",
+    "fingerprints": ["payment-svc|error_rate|crit", "payment-svc|latency_p99_ms|crit", "edge-lb|upstream_5xx_rate|crit"],
+    "actions": ["Rollback latest payment-svc deploy", "Scale payment-svc workers", "Temporarily raise connection pool limit"]
+  },
+  {
+    "incident_id": "INC-2026-03-22",
+    "title": "Checkout fanout timeout caused by payment",
+    "root_cause_service": "payment-svc",
+    "root_cause_class": "downstream_timeout",
+    "services": ["payment-svc", "checkout-svc", "cart-svc", "edge-lb"],
+    "severity": "crit",
+    "fingerprints": ["checkout-svc|request_drop_rate|crit", "payment-svc|latency_p99_ms|crit"],
+    "actions": ["Enable checkout payment timeout budget", "Inspect payment-svc slow queries", "Page payments-oncall"]
+  },
+  {
+    "incident_id": "INC-2025-12-19",
+    "title": "Edge upstream 5xx from checkout",
+    "root_cause_service": "checkout-svc",
+    "root_cause_class": "bad_deploy",
+    "services": ["checkout-svc", "edge-lb", "cart-svc"],
+    "severity": "crit",
+    "fingerprints": ["checkout-svc|request_drop_rate|crit", "edge-lb|upstream_5xx_rate|crit"],
+    "actions": ["Rollback checkout-svc canary", "Drain bad checkout pods", "Verify cart dependency latency"]
+  },
+  {
+    "incident_id": "INC-2026-01-14",
+    "title": "Cart redis latency spike",
+    "root_cause_service": "cart-svc",
+    "root_cause_class": "cache_latency",
+    "services": ["cart-svc", "checkout-svc"],
+    "severity": "warn",
+    "fingerprints": ["cart-svc|latency_p99_ms|warn", "checkout-svc|latency_p99_ms|warn"],
+    "actions": ["Check cart-redis memory pressure", "Restart overloaded redis replica", "Reduce cart cache TTL temporarily"]
+  },
+  {
+    "incident_id": "INC-2026-02-02",
+    "title": "Recommender batch retrain CPU spike",
+    "root_cause_service": "recommender-svc",
+    "root_cause_class": "batch_job_contention",
+    "services": ["recommender-svc"],
+    "severity": "warn",
+    "fingerprints": ["recommender-svc|cpu_utilization|warn"],
+    "actions": ["Throttle recommender retrain job", "Move batch job outside peak traffic", "Do not page unless customer latency increases"]
+  },
+  {
+    "incident_id": "INC-2026-04-18",
+    "title": "Search catalog query latency",
+    "root_cause_service": "search-svc",
+    "root_cause_class": "database_query_regression",
+    "services": ["search-svc", "catalog-db"],
+    "severity": "warn",
+    "fingerprints": ["search-svc|catalog_db_query_time_ms|warn"],
+    "actions": ["Inspect recent search query plan", "Add missing catalog-db index", "Reduce search result page size"]
+  },
+  {
+    "incident_id": "INC-2025-09-04",
+    "title": "Catalog DB contention",
+    "root_cause_service": "catalog-db",
+    "root_cause_class": "database_contention",
+    "services": ["catalog-svc", "search-svc", "inventory-svc", "recommender-svc"],
+    "severity": "crit",
+    "fingerprints": ["search-svc|catalog_db_query_time_ms|crit", "catalog-svc|latency_p99_ms|crit"],
+    "actions": ["Identify blocking catalog-db queries", "Fail read traffic to replica", "Page catalog-oncall"]
+  },
+  {
+    "incident_id": "INC-2026-05-28",
+    "title": "Kafka notification lag",
+    "root_cause_service": "notification-svc",
+    "root_cause_class": "queue_backlog",
+    "services": ["notification-svc", "kafka-events"],
+    "severity": "crit",
+    "fingerprints": ["notification-svc|queue_depth|crit", "notification-svc|queue_lag_ms|warn"],
+    "actions": ["Scale notification consumers", "Check kafka-events partition lag", "Pause low-priority campaigns"]
+  },
+  {
+    "incident_id": "INC-2025-10-11",
+    "title": "Inventory dependency timeout",
+    "root_cause_service": "inventory-svc",
+    "root_cause_class": "downstream_timeout",
+    "services": ["inventory-svc", "checkout-svc"],
+    "severity": "warn",
+    "fingerprints": ["inventory-svc|latency_p99_ms|warn", "checkout-svc|latency_p99_ms|warn"],
+    "actions": ["Check inventory API latency", "Enable checkout graceful degradation", "Scale inventory-svc"]
+  },
+  {
+    "incident_id": "INC-2026-01-29",
+    "title": "Auth latency at edge",
+    "root_cause_service": "auth-svc",
+    "root_cause_class": "auth_provider_latency",
+    "services": ["auth-svc", "edge-lb"],
+    "severity": "crit",
+    "fingerprints": ["auth-svc|latency_p99_ms|crit", "edge-lb|upstream_5xx_rate|warn"],
+    "actions": ["Check identity provider health", "Enable token cache", "Page identity-oncall"]
+  },
+  {
+    "incident_id": "INC-2025-08-17",
+    "title": "Edge load balancer saturation",
+    "root_cause_service": "edge-lb",
+    "root_cause_class": "load_balancer_saturation",
+    "services": ["edge-lb"],
+    "severity": "crit",
+    "fingerprints": ["edge-lb|p99_latency_ms|crit", "edge-lb|upstream_5xx_rate|crit"],
+    "actions": ["Scale edge-lb fleet", "Check WAF rule CPU impact", "Shift traffic to secondary region"]
+  },
+  {
+    "incident_id": "INC-2026-06-01",
+    "title": "Payment error budget burn",
+    "root_cause_service": "payment-svc",
+    "root_cause_class": "connection_pool_exhaustion",
+    "services": ["payment-svc", "checkout-svc", "edge-lb", "cart-svc"],
+    "severity": "crit",
+    "fingerprints": ["payment-svc|db_connection_pool_used_ratio|crit", "payment-svc|error_rate|crit", "checkout-svc|downstream_payment_error_rate|crit"],
+    "actions": ["Increase payment-svc pool size", "Rollback payment-svc deploy", "Inspect payments-db connection wait time"]
+  },
+  {
+    "incident_id": "INC-2025-07-07",
+    "title": "Catalog deployment regression",
+    "root_cause_service": "catalog-svc",
+    "root_cause_class": "bad_deploy",
+    "services": ["catalog-svc", "search-svc", "edge-lb"],
+    "severity": "crit",
+    "fingerprints": ["catalog-svc|latency_p99_ms|crit", "search-svc|catalog_db_query_time_ms|warn"],
+    "actions": ["Rollback catalog-svc release", "Clear catalog-svc bad pods", "Validate catalog-db query rate"]
+  },
+  {
+    "incident_id": "INC-2025-12-02",
+    "title": "Recommender offline feature store delay",
+    "root_cause_service": "recommender-svc",
+    "root_cause_class": "batch_job_contention",
+    "services": ["recommender-svc", "catalog-db"],
+    "severity": "warn",
+    "fingerprints": ["recommender-svc|cpu_utilization|warn"],
+    "actions": ["Pause recommender feature refresh", "Check ML job concurrency", "Keep pager suppressed if standalone"]
+  },
+  {
+    "incident_id": "INC-2026-03-03",
+    "title": "Search index cold cache",
+    "root_cause_service": "search-svc",
+    "root_cause_class": "cache_warmup",
+    "services": ["search-svc"],
+    "severity": "warn",
+    "fingerprints": ["search-svc|catalog_db_query_time_ms|warn"],
+    "actions": ["Warm search index cache", "Reduce crawler concurrency", "Monitor catalog-db read latency"]
+  },
+  {
+    "incident_id": "INC-2025-11-30",
+    "title": "Notification campaign burst",
+    "root_cause_service": "notification-svc",
+    "root_cause_class": "queue_backlog",
+    "services": ["notification-svc", "kafka-events"],
+    "severity": "warn",
+    "fingerprints": ["notification-svc|queue_lag_ms|warn"],
+    "actions": ["Throttle campaign publisher", "Scale notification consumers", "Monitor kafka-events lag"]
+  },
+  {
+    "incident_id": "INC-2026-04-02",
+    "title": "Payments DB failover latency",
+    "root_cause_service": "payments-db",
+    "root_cause_class": "database_failover",
+    "services": ["payments-db", "payment-svc", "checkout-svc"],
+    "severity": "crit",
+    "fingerprints": ["payment-svc|latency_p99_ms|crit", "payment-svc|error_rate|crit"],
+    "actions": ["Verify payments-db primary election", "Check payment-svc connection retry storm", "Stabilize database failover"]
+  },
+  {
+    "incident_id": "INC-2025-10-25",
+    "title": "Checkout memory leak",
+    "root_cause_service": "checkout-svc",
+    "root_cause_class": "memory_leak",
+    "services": ["checkout-svc", "edge-lb"],
+    "severity": "crit",
+    "fingerprints": ["checkout-svc|latency_p99_ms|crit", "edge-lb|upstream_5xx_rate|warn"],
+    "actions": ["Rollback checkout-svc image", "Restart leaking checkout pods", "Inspect heap profile"]
+  },
+  {
+    "incident_id": "INC-2026-02-16",
+    "title": "Cart service GC pause",
+    "root_cause_service": "cart-svc",
+    "root_cause_class": "runtime_gc_pause",
+    "services": ["cart-svc", "checkout-svc"],
+    "severity": "warn",
+    "fingerprints": ["cart-svc|latency_p99_ms|warn"],
+    "actions": ["Inspect cart-svc GC logs", "Reduce cart object allocation", "Restart worst pods"]
+  },
+  {
+    "incident_id": "INC-2025-09-22",
+    "title": "Inventory stale lock",
+    "root_cause_service": "inventory-svc",
+    "root_cause_class": "lock_contention",
+    "services": ["inventory-svc", "checkout-svc", "catalog-db"],
+    "severity": "crit",
+    "fingerprints": ["inventory-svc|latency_p99_ms|crit", "checkout-svc|request_drop_rate|crit"],
+    "actions": ["Clear stale inventory lock", "Reduce reservation batch size", "Page inventory-oncall"]
+  },
+  {
+    "incident_id": "INC-2026-01-06",
+    "title": "Catalog DB vacuum contention",
+    "root_cause_service": "catalog-db",
+    "root_cause_class": "database_contention",
+    "services": ["catalog-db", "catalog-svc", "search-svc"],
+    "severity": "warn",
+    "fingerprints": ["search-svc|catalog_db_query_time_ms|warn"],
+    "actions": ["Pause aggressive vacuum", "Move catalog-db maintenance window", "Add read replica capacity"]
+  },
+  {
+    "incident_id": "INC-2025-08-29",
+    "title": "Edge bad routing rule",
+    "root_cause_service": "edge-lb",
+    "root_cause_class": "routing_misconfiguration",
+    "services": ["edge-lb", "checkout-svc", "catalog-svc"],
+    "severity": "crit",
+    "fingerprints": ["edge-lb|upstream_5xx_rate|crit"],
+    "actions": ["Revert edge-lb routing rule", "Drain affected target group", "Validate upstream health checks"]
+  },
+  {
+    "incident_id": "INC-2026-05-02",
+    "title": "Auth token cache miss storm",
+    "root_cause_service": "auth-svc",
+    "root_cause_class": "cache_miss_storm",
+    "services": ["auth-svc", "edge-lb"],
+    "severity": "warn",
+    "fingerprints": ["auth-svc|latency_p99_ms|warn"],
+    "actions": ["Warm auth token cache", "Check cache eviction policy", "Reduce auth retry amplification"]
+  },
+  {
+    "incident_id": "INC-2025-12-27",
+    "title": "Payment retry storm",
+    "root_cause_service": "payment-svc",
+    "root_cause_class": "retry_storm",
+    "services": ["payment-svc", "checkout-svc", "edge-lb"],
+    "severity": "crit",
+    "fingerprints": ["payment-svc|error_rate|crit", "checkout-svc|downstream_payment_error_rate|crit"],
+    "actions": ["Disable aggressive payment retries", "Increase circuit breaker backoff", "Inspect payment provider errors"]
+  },
+  {
+    "incident_id": "INC-2026-02-24",
+    "title": "Kafka broker disk pressure",
+    "root_cause_service": "kafka-events",
+    "root_cause_class": "queue_backlog",
+    "services": ["kafka-events", "notification-svc", "checkout-svc"],
+    "severity": "crit",
+    "fingerprints": ["notification-svc|queue_depth|crit"],
+    "actions": ["Free kafka broker disk", "Move partitions from hot broker", "Throttle notification producers"]
+  },
+  {
+    "incident_id": "INC-2025-07-19",
+    "title": "Search deploy query regression",
+    "root_cause_service": "search-svc",
+    "root_cause_class": "database_query_regression",
+    "services": ["search-svc", "catalog-db", "edge-lb"],
+    "severity": "crit",
+    "fingerprints": ["search-svc|catalog_db_query_time_ms|warn"],
+    "actions": ["Rollback search-svc query planner change", "Compare query plans", "Reduce high-cardinality filters"]
+  },
+  {
+    "incident_id": "INC-2026-04-27",
+    "title": "Checkout payment contract mismatch",
+    "root_cause_service": "checkout-svc",
+    "root_cause_class": "contract_mismatch",
+    "services": ["checkout-svc", "payment-svc", "edge-lb"],
+    "severity": "crit",
+    "fingerprints": ["checkout-svc|downstream_payment_error_rate|crit", "payment-svc|error_rate|warn"],
+    "actions": ["Rollback checkout payment client", "Verify payment API schema", "Disable incompatible feature flag"]
+  },
+  {
+    "incident_id": "INC-2025-06-30",
+    "title": "Payment slow query after schema change",
+    "root_cause_service": "payment-svc",
+    "root_cause_class": "database_query_regression",
+    "services": ["payment-svc", "payments-db", "checkout-svc"],
+    "severity": "crit",
+    "fingerprints": ["payment-svc|latency_p99_ms|crit", "payment-svc|db_connection_pool_used_ratio|warn"],
+    "actions": ["Add missing payments-db index", "Rollback schema migration if needed", "Cap payment-svc concurrency"]
+  },
+  {
+    "incident_id": "INC-2026-06-05",
+    "title": "Standalone recommender CPU noisy alert",
+    "root_cause_service": "recommender-svc",
+    "root_cause_class": "batch_job_contention",
+    "services": ["recommender-svc"],
+    "severity": "warn",
+    "fingerprints": ["recommender-svc|cpu_utilization|warn"],
+    "actions": ["Lower alert priority", "Move retrain schedule", "Investigate only if catalog latency also rises"]
+  }
+]

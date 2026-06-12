@@ -1,0 +1,85 @@
+{
+  "clusters_analyzed": 3,
+  "results": [
+    {
+      "cluster_id": "c-001-000",
+      "graph_top3": [
+        [
+          "payment-svc",
+          0.77
+        ],
+        [
+          "checkout-svc",
+          0.47
+        ],
+        [
+          "cart-svc",
+          0.44
+        ]
+      ],
+      "root_cause": "payment-svc",
+      "class": "connection_pool_exhaustion",
+      "confidence": 0.9,
+      "actions": [
+        "Rollback latest payment-svc deploy",
+        "Scale payment-svc workers",
+        "Temporarily raise connection pool limit"
+      ],
+      "reasoning": "payment-svc is ranked highest because it is downstream in the dependency graph, can explain upstream/victim alerts, and its alert appears early in the cluster time range.",
+      "similar_incidents": [
+        "INC-2026-05-10",
+        "INC-2026-06-01",
+        "INC-2026-03-22"
+      ],
+      "method": "graph+retrieval"
+    },
+    {
+      "cluster_id": "c-001-001",
+      "graph_top3": [
+        [
+          "recommender-svc",
+          0.94
+        ]
+      ],
+      "root_cause": "recommender-svc",
+      "class": "batch_job_contention",
+      "confidence": 0.95,
+      "actions": [
+        "Throttle recommender retrain job",
+        "Move batch job outside peak traffic",
+        "Do not page unless customer latency increases"
+      ],
+      "reasoning": "recommender-svc is the only alerted service in this cluster, so the RCA remains local unless more topology evidence appears.",
+      "similar_incidents": [
+        "INC-2026-02-02",
+        "INC-2026-06-05",
+        "INC-2025-12-02"
+      ],
+      "method": "graph+retrieval"
+    },
+    {
+      "cluster_id": "c-001-002",
+      "graph_top3": [
+        [
+          "search-svc",
+          0.88
+        ]
+      ],
+      "root_cause": "search-svc",
+      "class": "cache_warmup",
+      "confidence": 0.95,
+      "actions": [
+        "Warm search index cache",
+        "Reduce crawler concurrency",
+        "Monitor catalog-db read latency"
+      ],
+      "reasoning": "search-svc is the only alerted service in this cluster, so the RCA remains local unless more topology evidence appears.",
+      "similar_incidents": [
+        "INC-2026-03-03",
+        "INC-2026-04-18",
+        "INC-2025-07-19"
+      ],
+      "method": "graph+retrieval"
+    }
+  ]
+}

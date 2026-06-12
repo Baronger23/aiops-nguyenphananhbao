@@ -1,0 +1,11 @@
+# W2-D3 Service Design
+
+The D3 service is a thin FastAPI wrapper around pure Python RCA functions. The endpoint pipeline is: validate the request with Pydantic, normalize alert timestamps, load cached static data, run W2-D1 style correlation, run W2-D2 style RCA, then return clusters, the top root cause, and recommended actions. The core functions are `correlate()` and `run_rca()`, so the API layer stays small and the scoring logic can be tested without HTTP.
+
+The concrete defaults are `gap_sec=120s` and `max_hop=2`. I chose `120s` because incident bursts usually create multiple alerts close together, but a wider window can merge unrelated problems. I chose `max_hop=2` because microservice cascade usually reaches direct upstream/downstream neighbors and one extra hop; more than that can wrongly attach unrelated services. The RCA score is deterministic: `0.6 * graph_score + 0.4 * timestamp_score`. Graph score prefers deeper services that can explain upstream victim alerts, while timestamp score favors services that alert earlier in the incident.
+
+The latency budget is intentionally small for a weak machine. JSON validation should be a few milliseconds for the 20-alert sample. Session grouping is linear in alert count after sorting. Topology grouping does short BFS traversals over a small service graph. Retrieval compares each cluster against 30 historical incidents, which is tiny. Static files such as `services.json`, `incidents_history.json`, and sample alerts are cached in RAM, so concurrent requests do not repeatedly read from disk.
+
+The main production concern is single-worker concurrency. The lab runs with `--workers 1`, so the service avoids slow LLM calls and keeps all computation CPU-light. `AIOPS_USE_LLM=false` is supported as the benchmark path, and this implementation never calls an LLM. If traffic grows, the same pure functions can run behind more workers or be moved to a task queue.
+
+FastAPI is a better fit than Flask here because Pydantic gives automatic request validation and 422 responses for invalid input. FastAPI also provides OpenAPI docs and ASGI middleware with little code. BentoML is useful for packaging ML models, but this lab serves deterministic graph and retrieval logic, so BentoML would add unnecessary overhead and complexity.
