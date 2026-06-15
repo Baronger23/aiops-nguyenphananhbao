@@ -5,13 +5,13 @@ groups:
     expr: |
       (sum(rate(http_requests_total{service="api",status="fail"}[1h])) / sum(rate(http_requests_total{service="api"}[1h]))) / (1 - 0.99) >= 1.2
       AND
-      (sum(rate(http_requests_total{service="api",status="fail"}[3m])) / sum(rate(http_requests_total{service="api"}[3m]))) / (1 - 0.99) >= 1.2
+      (sum(rate(http_requests_total{service="api",status="fail"}[5m])) / sum(rate(http_requests_total{service="api"}[5m]))) / (1 - 0.99) >= 1.2
     labels: {severity: page, tier: "1"}
   - alert: api_burn_rate_tier2
     expr: |
       (sum(rate(http_requests_total{service="api",status="fail"}[6h])) / sum(rate(http_requests_total{service="api"}[6h]))) / (1 - 0.99) >= 0.6
       AND
-      (sum(rate(http_requests_total{service="api",status="fail"}[15m])) / sum(rate(http_requests_total{service="api"}[15m]))) / (1 - 0.99) >= 0.6
+      (sum(rate(http_requests_total{service="api",status="fail"}[30m])) / sum(rate(http_requests_total{service="api"}[30m]))) / (1 - 0.99) >= 0.6
     labels: {severity: page, tier: "2"}
   - alert: api_burn_rate_tier3
     expr: |
@@ -26,13 +26,13 @@ groups:
     expr: |
       (sum(rate(db_queries_total{status="fail"}[1h])) / sum(rate(db_queries_total[1h]))) / (1 - 0.995) >= 1.2
       AND
-      (sum(rate(db_queries_total{status="fail"}[3m])) / sum(rate(db_queries_total{status="fail"}[3m]))) / (1 - 0.995) >= 1.2
+      (sum(rate(db_queries_total{status="fail"}[5m])) / sum(rate(db_queries_total{status="fail"}[5m]))) / (1 - 0.995) >= 1.2
     labels: {severity: page, tier: "1"}
   - alert: db_burn_rate_tier2
     expr: |
-      (sum(rate(db_queries_total{status="fail"}[6h])) / sum(rate(db_queries_total[6h]))) / (1 - 0.995) >= 0.6
+      (sum(rate(db_queries_total{status="fail"}[6h])) / sum(rate(db_queries_total{status="fail"}[6h]))) / (1 - 0.995) >= 0.6
       AND
-      (sum(rate(db_queries_total{status="fail"}[15m])) / sum(rate(db_queries_total{status="fail"}[15m]))) / (1 - 0.995) >= 0.6
+      (sum(rate(db_queries_total{status="fail"}[30m])) / sum(rate(db_queries_total{status="fail"}[30m]))) / (1 - 0.995) >= 0.6
     labels: {severity: page, tier: "2"}
   - alert: db_burn_rate_tier3
     expr: |
@@ -47,13 +47,13 @@ groups:
     expr: |
       (sum(rate(frontend_page_loads_total{status="fail"}[1h])) / sum(rate(frontend_page_loads_total[1h]))) / (1 - 0.985) >= 1.2
       AND
-      (sum(rate(frontend_page_loads_total{status="fail"}[3m])) / sum(rate(frontend_page_loads_total{status="fail"}[3m]))) / (1 - 0.985) >= 1.2
+      (sum(rate(frontend_page_loads_total{status="fail"}[5m])) / sum(rate(frontend_page_loads_total{status="fail"}[5m]))) / (1 - 0.985) >= 1.2
     labels: {severity: page, tier: "1"}
   - alert: frontend_burn_rate_tier2
     expr: |
-      (sum(rate(frontend_page_loads_total{status="fail"}[6h])) / sum(rate(frontend_page_loads_total{status="fail"}[6h]))) / (1 - 0.985) >= 0.6
+      (sum(rate(frontend_page_loads_total{status="fail"}[6h])) / sum(rate(frontend_page_loads_total[6h]))) / (1 - 0.985) >= 0.6
       AND
-      (sum(rate(frontend_page_loads_total{status="fail"}[15m])) / sum(rate(frontend_page_loads_total{status="fail"}[15m]))) / (1 - 0.985) >= 0.6
+      (sum(rate(frontend_page_loads_total{status="fail"}[30m])) / sum(rate(frontend_page_loads_total{status="fail"}[30m]))) / (1 - 0.985) >= 0.6
     labels: {severity: page, tier: "2"}
   - alert: frontend_burn_rate_tier3
     expr: |
