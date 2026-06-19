@@ -1,0 +1,217 @@
+[
+  {
+    "id": 1,
+    "name": "payment_latency",
+    "detected": true,
+    "mttd": 18,
+    "rca_service": "payment-svc",
+    "rca_correct": true,
+    "observed_at_ts": 1781585342,
+    "raw": {
+      "alerts": [
+        {
+          "service": "api-gateway",
+          "fault_class": "latency",
+          "message": "Service api-gateway latency is high (0.79s)",
+          "fire_ts": 1781585360
+        }
+      ],
+      "rca": {
+        "root_service": "payment-svc"
+      },
+      "mttd_seconds": 18,
+      "detected": true
+    },
+    "aborted": true
+  },
+  {
+    "id": 2,
+    "name": "payment_loss",
+    "detected": true,
+    "mttd": 15,
+    "rca_service": "payment-svc",
+    "rca_correct": true,
+    "observed_at_ts": 1781585480,
+    "raw": {
+      "alerts": [],
+      "rca": {
+        "root_service": "payment-svc"
+      },
+      "mttd_seconds": 15,
+      "detected": true
+    },
+    "aborted": true
+  },
+  {
+    "id": 3,
+    "name": "inventory_kill",
+    "detected": true,
+    "mttd": 21,
+    "rca_service": "inventory-svc",
+    "rca_correct": true,
+    "observed_at_ts": 1781585622,
+    "raw": {
+      "alerts": [
+        {
+          "service": "microservices",
+          "fault_class": "availability",
+          "message": "Service microservices is down (up=0)",
+          "fire_ts": 1781585643
+        },
+        {
+          "service": "api-gateway",
+          "fault_class": "latency",
+          "message": "Service api-gateway latency is high (1.00s)",
+          "fire_ts": 1781585643
+        },
+        {
+          "service": "api-gateway",
+          "fault_class": "error_rate",
+          "message": "Service api-gateway error rate is high (26.6%)",
+          "fire_ts": 1781585643
+        }
+      ],
+      "rca": {
+        "root_service": "inventory-svc"
+      },
+      "mttd_seconds": 21,
+      "detected": true
+    },
+    "aborted": true
+  },
+  {
+    "id": 4,
+    "name": "api_gateway_cpu",
+    "detected": true,
+    "mttd": 15,
+    "rca_service": "api-gateway",
+    "rca_correct": true,
+    "observed_at_ts": 1781585763,
+    "raw": {
+      "alerts": [],
+      "rca": {
+        "root_service": "api-gateway"
+      },
+      "mttd_seconds": 15,
+      "detected": true
+    },
+    "aborted": false
+  },
+  {
+    "id": 5,
+    "name": "payment_db_mem",
+    "detected": true,
+    "mttd": 15,
+    "rca_service": "payment-db",
+    "rca_correct": true,
+    "observed_at_ts": 1781585944,
+    "raw": {
+      "alerts": [],
+      "rca": {
+        "root_service": "payment-db"
+      },
+      "mttd_seconds": 15,
+      "detected": true
+    },
+    "aborted": false
+  },
+  {
+    "id": 6,
+    "name": "auth_clock_skew",
+    "detected": true,
+    "mttd": 15,
+    "rca_service": "auth-svc",
+    "rca_correct": true,
+    "observed_at_ts": 1781586157,
+    "raw": {
+      "alerts": [],
+      "rca": {
+        "root_service": "auth-svc"
+      },
+      "mttd_seconds": 15,
+      "detected": true
+    },
+    "aborted": false
+  },
+  {
+    "id": 7,
+    "name": "log_collector_disk",
+    "detected": false,
+    "mttd": null,
+    "rca_service": null,
+    "rca_correct": false,
+    "observed_at_ts": 1781586283,
+    "raw": {
+      "alerts": [],
+      "rca": {
+        "root_service": null,
+        "error": "No anomaly detected"
+      },
+      "mttd_seconds": null,
+      "detected": false
+    },
+    "aborted": false
+  },
+  {
+    "id": 8,
+    "name": "frontend_partition",
+    "detected": true,
+    "mttd": 33,
+    "rca_service": "frontend",
+    "rca_correct": true,
+    "observed_at_ts": 1781586408,
+    "raw": {
+      "alerts": [
+        {
+          "service": "microservices",
+          "fault_class": "availability",
+          "message": "Service microservices is down (up=0)",
+          "fire_ts": 1781586441
+        }
+      ],
+      "rca": {
+        "root_service": "frontend"
+      },
+      "mttd_seconds": 33,
+      "detected": true
+    },
+    "aborted": false
+  },
+  {
+    "id": 9,
+    "name": "dns_resolver_latency",
+    "detected": false,
+    "mttd": null,
+    "rca_service": null,
+    "rca_correct": false,
+    "observed_at_ts": 1781586561,
+    "raw": {
+      "alerts": [],
+      "rca": {
+        "root_service": null,
+        "error": "No anomaly detected"
+      },
+      "mttd_seconds": null,
+      "detected": false
+    },
+    "aborted": false
+  },
+  {
+    "id": 10,
+    "name": "checkout_retry_storm",
+    "detected": true,
+    "mttd": 15,
+    "rca_service": "checkout-svc",
+    "rca_correct": false,
+    "observed_at_ts": 1781586744,
+    "raw": {
+      "alerts": [],
+      "rca": {
+        "root_service": "checkout-svc"
+      },
+      "mttd_seconds": 15,
+      "detected": true
+    },
+    "aborted": false
+  }
+]

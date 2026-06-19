@@ -1,0 +1,42 @@
+[
+  {
+    "ts": "2019-07-02T13:42:00Z",
+    "source": "docker",
+    "event": "Deploy WAF rule mới (Global rollout completed)."
+  },
+  {
+    "ts": "2019-07-02T13:42:15Z",
+    "source": "pipeline",
+    "event": "Nhận request có chuỗi adversarial input đầu tiên kích hoạt evil regex."
+  },
+  {
+    "ts": "2019-07-02T13:42:30Z",
+    "source": "prom",
+    "event": "Core CPU số 1 chạm ngưỡng 100% utilization."
+  },
+  {
+    "ts": "2019-07-02T13:43:00Z",
+    "source": "pipeline",
+    "event": "Cổng Gateway bắt đầu ghi nhận HTTP Request Queue phình to."
+  },
+  {
+    "ts": "2019-07-02T13:43:30Z",
+    "source": "pipeline",
+    "event": "Khách hàng bên ngoài bắt đầu gặp lỗi Connection Timeout."
+  },
+  {
+    "ts": "2019-07-02T13:44:00Z",
+    "source": "pipeline",
+    "event": "Thử nghiệm gửi request sạch từ máy nội bộ -> Phản hồi bị block hoàn toàn."
+  },
+  {
+    "ts": "2019-07-02T13:45:00Z",
+    "source": "prom",
+    "event": "Đội ngũ On-call nhận cảnh báo High CPU tổng thể từ Prometheus nhưng chưa rõ nguyên nhân do WAF."
+  },
+  {
+    "ts": "2019-07-02T14:09:00Z",
+    "source": "docker",
+    "event": "Quyết định Rollback thủ công luật WAF mới -> Hệ thống phục hồi (Downtime 27 phút)."
+  }
+]
