@@ -1,0 +1,9 @@
+# Bỏ qua tất cả mọi thứ trong thư mục lab-closed-loop
+*
+
+# Không bỏ qua thư mục nguyenphananhbao và toàn bộ nội dung bên trong
+!nguyenphananhbao/
+!nguyenphananhbao/**
+
+# Không bỏ qua chính file .gitignore
+!.gitignore

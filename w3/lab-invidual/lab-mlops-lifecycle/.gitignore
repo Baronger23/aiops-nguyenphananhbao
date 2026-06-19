@@ -1,0 +1,18 @@
+# Ignore everything at the root level by default
+/*
+
+# Whitelist the submission folder and the gitignore file itself
+!/nguyenphananhbao/
+!.gitignore
+
+# Ignore python caches and local envs globally
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache/
+venv/
+.venv/
+.env
+.idea/
+.vscode/
