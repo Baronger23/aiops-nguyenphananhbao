@@ -76,6 +76,8 @@ class AnomalyDetails(BaseModel):
     runaway_days: int
     affected_resource: str
     ratio_increase: float
+    aws_cli_command: Optional[str] = None
+
 
 class DetectIngestResponse(BaseModel):
     status: str
@@ -263,62 +265,93 @@ async def detect_anomaly(
     return DetectIngestResponse(status="IN_PROGRESS", audit_id=audit_id)
 
 
-def holt_winters_anomaly_detection_helper(series, alpha=0.3, beta=0.1, gamma=0.3, L=7, z_threshold=3.5, min_cost=15.0):
-    n = len(series)
+def isolation_forest_anomaly_detection_helper(costs, timestamps, min_cost=15.0):
+    import numpy as np
+    from sklearn.ensemble import IsolationForest
+    
+    n = len(costs)
     if n < 14:
         return [False] * n
         
-    y = [math.log(x + 1) for x in series]
+    records = []
+    for t in range(n):
+        cost = costs[t]
+        ts = timestamps[t]
+        
+        # 7-day average
+        past_costs = costs[max(0, t-6):t+1]
+        avg_7d = sum(past_costs) / len(past_costs)
+        cost_ratio = cost / (avg_7d if avg_7d > 0.0 else 1.0)
+        
+        day_of_week = ts.weekday()
+        is_weekend = 1 if day_of_week >= 5 else 0
+        
+        records.append([
+            math.log(cost + 1),
+            0, # simplified service
+            0, # simplified region
+            cost_ratio,
+            day_of_week,
+            is_weekend
+        ])
+        
+    X = np.array(records)
+    clf = IsolationForest(n_estimators=100, contamination=0.15, random_state=42)
+    predictions = clf.fit_predict(X)
     
-    level = sum(y[:L]) / L
-    trend = sum(y[L:2*L][i] - y[:L][i] for i in range(L)) / (L * L)
-    season = [y[i] - level for i in range(L)]
-    
-    forecasts = [0.0] * n
-    errors = [0.0] * n
-    anomalies = [False] * n
-    
-    levels = [level]
-    trends = [trend]
-    seasons = season * 2
-    
-    for t in range(2*L, n):
-        fore = levels[-1] + trends[-1] + seasons[t-L]
-        forecasts[t] = math.exp(fore) - 1
+    anomalies = []
+    for t in range(n):
+        is_anom = True if predictions[t] == -1 and costs[t] > min_cost else False
+        anomalies.append(is_anom)
         
-        val = y[t]
-        actual_val = series[t]
-        
-        err = val - fore
-        errors[t] = err
-        
-        new_level = alpha * (val - seasons[t-L]) + (1 - alpha) * (levels[-1] + trends[-1])
-        new_trend = beta * (new_level - levels[-1]) + (1 - beta) * trends[-1]
-        new_season = gamma * (val - new_level) + (1 - gamma) * seasons[t-L]
-        
-        levels.append(new_level)
-        trends.append(new_trend)
-        seasons.append(new_season)
-        
-        if t >= 14:
-            past_errors = errors[14:t]
-            if len(past_errors) > 0:
-                mean_err = sum(past_errors) / len(past_errors)
-                variance = sum((x - mean_err) ** 2 for x in past_errors) / len(past_errors)
-                std_err = math.sqrt(variance)
-            else:
-                mean_err = 0.0
-                std_err = 0.20
-            
-            if std_err == 0.0:
-                std_err = 0.20
-            std_err = max(std_err, 0.20)
-            
-            z = (err - mean_err) / std_err
-            if z > z_threshold and actual_val > min_cost:
-                anomalies[t] = True
-                
     return anomalies
+def generate_amazon_nova_reasons_and_commands(resource_id: str, service: str, environment: str, daily_waste: float, runaway_days: int, ratio_increase: float, confidence: float, is_whitelisted: bool, is_business_growth: bool):
+    # Clean up resource id
+    clean_rid = resource_id.split("/")[-1].split(":")[-1]
+    env_lower = environment.lower()
+    
+    if is_whitelisted:
+        suggested_action = "ALERT_ONLY"
+        aws_cli_command = None
+        reasoning = f"Tài nguyên {clean_rid} nằm trong danh sách loại trừ tự động (FinOps_Bypass = True). Hệ thống chỉ phát cảnh báo, không thực hiện hành động ngăn chặn tự động."
+        return suggested_action, aws_cli_command, reasoning
+        
+    if is_business_growth:
+        suggested_action = "ALERT_ONLY"
+        aws_cli_command = None
+        reasoning = f"Chi phí dịch vụ {service} tăng vọt {ratio_increase} lần do tải sử dụng tăng trưởng nghiệp vụ hợp lệ (CPU hoạt động cao liên tục), chuyển sang chế độ ALERT_ONLY để kỹ sư kiểm tra."
+        return suggested_action, aws_cli_command, reasoning
+
+    cmd = None
+    if service.lower() in ["rds", "amazonrds"]:
+        cmd = f"aws rds stop-db-instance --db-instance-identifier {clean_rid}"
+    elif service.lower() in ["sagemaker", "amazonsagemaker"]:
+        cmd = f"aws sagemaker stop-notebook-instance --notebook-instance-name {clean_rid}"
+    else: # EC2
+        cmd = f"aws ec2 stop-instances --instance-ids {clean_rid}"
+
+    if "prod" in env_lower:
+        suggested_action = "TAG_FOR_REVIEW"
+        aws_cli_command = None
+        reasoning = f"Chi phí dịch vụ Production {clean_rid} tăng vọt {ratio_increase} lần, đề xuất gắn thẻ Review kiểm tra thay vì tự động tắt máy ảo."
+    elif "staging" in env_lower:
+        suggested_action = "SCHEDULE_SHUTDOWN"
+        aws_cli_command = cmd
+        reasoning = f"CẢNH BÁO: Phát hiện lãng phí ${daily_waste}/ngày trên {clean_rid} (Staging) chạy không tải (idle). Hệ thống thiết lập đếm ngược 4 giờ trước khi tự động tắt: `{cmd}`."
+    elif "ml-research" in env_lower or "dev" in env_lower or "sandbox" in env_lower:
+        suggested_action = "SCHEDULE_SHUTDOWN"
+        aws_cli_command = cmd
+        reasoning = f"Phát hiện chi phí {service} tăng đột biến {ratio_increase} lần, lãng phí khoảng ${daily_waste}/ngày do máy chạy không tải (idle) liên tục trong {runaway_days} ngày. Thực hiện tắt máy lập tức: `{cmd}`."
+    elif "data-analytics" in env_lower or "analytics" in env_lower:
+        suggested_action = "QUOTA_CAP"
+        aws_cli_command = f"aws service-quotas request-service-quota-increase --service-code {service.lower()} --quota-code L-1216C290 --value 0"
+        reasoning = f"Phát hiện chi phí {service} tăng đột biến {ratio_increase} lần trên tài khoản data-analytics. Áp dụng giới hạn chi phí trần bằng Service Quotas API để tránh làm hỏng cấu trúc dữ liệu: `{aws_cli_command}`."
+    else:
+        suggested_action = "ALERT_ONLY"
+        aws_cli_command = None
+        reasoning = f"Phát hiện chi phí {clean_rid} tăng đột biến {ratio_increase} lần, đề xuất ALERT_ONLY kiểm tra."
+        
+    return suggested_action, aws_cli_command, reasoning
 
 
 async def run_background_analysis(
@@ -374,10 +407,11 @@ async def run_background_analysis(
             MOCK_DYNAMODB_AUDIT_STORE[audit_id] = response_data
             return
 
-        # 3. Log Transform & Holt-Winters execution
+        # 3. Log Transform & Isolation Forest execution
         costs_sorted = sorted(cur_datapoints, key=lambda x: x.ts)
         cost_values = [dp.value for dp in costs_sorted]
-        anoms = holt_winters_anomaly_detection_helper(cost_values)
+        timestamps_sorted = [dp.ts for dp in costs_sorted]
+        anoms = isolation_forest_anomaly_detection_helper(cost_values, timestamps_sorted)
         has_anomaly = anoms[-1] if len(anoms) > 0 else False
 
         # 4. Drain3 Log Mining
@@ -401,6 +435,8 @@ async def run_background_analysis(
         daily_waste = 0.0
         runaway_days = 0
         ratio_increase = 1.0
+        env = "dev"
+        service = "SageMaker"
 
         # Find idle hours and CPU metrics
         idle_hours = 0.0
@@ -408,8 +444,12 @@ async def run_background_analysis(
             if dp.labels:
                 if dp.labels.get("FinOps_Bypass") in [True, "true", "True"]:
                     is_whitelisted = True
-                if dp.labels.get("environment") in ["prod", "production", "Prod", "Production"]:
-                    is_prod = True
+                if dp.labels.get("environment"):
+                    env = dp.labels.get("environment")
+                    if env.lower() in ["prod", "production"]:
+                        is_prod = True
+                if dp.labels.get("service"):
+                    service = dp.labels.get("service")
                 
                 # Fetch resource_id
                 res_id = dp.labels.get("resource_id")
@@ -428,7 +468,16 @@ async def run_background_analysis(
                 elif metric_name == "idle_hours_continuous":
                     idle_hours = dp.value
 
-        # Trigger anomaly if either Holt-Winters flags or idle hours exceed threshold
+        # Calculate ratio increase for validation
+        last_value = cost_values[-1]
+        baseline_mean = sum(cost_values[:-1]) / len(cost_values[:-1]) if len(cost_values) > 1 else 1.0
+        ratio_increase = round(last_value / (baseline_mean if baseline_mean > 0 else 1.0), 1)
+        daily_waste = round(last_value - baseline_mean, 2)
+        
+        if has_anomaly and ratio_increase < 1.5:
+            has_anomaly = False
+
+        # Trigger anomaly if either Isolation Forest flags or idle hours exceed threshold
         if idle_hours > 12.0:
             has_anomaly = True
 
@@ -461,16 +510,16 @@ async def run_background_analysis(
 
         # 6. Bedrock Outage Simulation Fallback
         if simulate_bedrock_outage:
-            reasoning = (
-                f"Mất kết nối Bedrock (Outage). Kích hoạt Circuit Breaker rẽ nhánh chạy Rule-based: "
-                f"Phát hiện chi phí dịch vụ tăng {ratio_increase} lần, tài nguyên lãng phí ${daily_waste}/ngày."
+            suggested_action_fb, aws_cli_command_fb, reasoning_fb = generate_amazon_nova_reasons_and_commands(
+                affected_resource, service, env, daily_waste, runaway_days, ratio_increase, 0.70, is_whitelisted, is_business_growth
             )
+            reasoning = f"Mất kết nối Bedrock (Outage). Kích hoạt Circuit Breaker rẽ nhánh chạy Rule-based: {reasoning_fb}"
             response_data = DetectStatusResponse(
                 status="COMPLETED",
                 audit_id=audit_id,
                 anomaly=has_anomaly,
                 severity=0.80 if has_anomaly else 0.0,
-                suggested_action="ALERT_ONLY" if is_whitelisted or is_business_growth else ("TAG_FOR_REVIEW" if is_prod else "SCHEDULE_SHUTDOWN"),
+                suggested_action=suggested_action_fb if has_anomaly else "ALERT_ONLY",
                 reasoning=reasoning,
                 confidence=0.70,
                 fallback_active=True,
@@ -478,7 +527,8 @@ async def run_background_analysis(
                     daily_waste_usd=daily_waste if has_anomaly else 0.0,
                     runaway_days=runaway_days if has_anomaly else 0,
                     affected_resource=affected_resource,
-                    ratio_increase=ratio_increase if has_anomaly else 1.0
+                    ratio_increase=ratio_increase if has_anomaly else 1.0,
+                    aws_cli_command=aws_cli_command_fb if has_anomaly else None
                 )
             )
             MOCK_DYNAMODB_AUDIT_STORE[db_key] = response_data
@@ -488,102 +538,47 @@ async def run_background_analysis(
         # 7. Main decision logic (Configurable Confidence System)
         tenant_config = TENANT_CONFIGS.get(tenant_id, {"idle_threshold_normal": 24, "idle_threshold_high": 72})
         
-        if is_whitelisted:
-            response_data = DetectStatusResponse(
-                status="COMPLETED",
-                audit_id=audit_id,
-                anomaly=has_anomaly,
-                severity=0.10,
-                suggested_action="ALERT_ONLY",
-                reasoning="Tài nguyên nằm trong danh sách loại trừ tự động (FinOps_Bypass = True). Hệ thống chỉ phát cảnh báo, không thực hiện hành động ngăn chặn tự động.",
-                confidence=1.0
-            )
-        elif is_business_growth:
-            reasoning = (
-                f"Chi phí dịch vụ tăng vọt {ratio_increase} lần do tải sử dụng tăng trưởng nghiệp vụ hợp lệ "
-                f"(CPU đạt 95% liên tục), chuyển sang chế độ ALERT_ONLY để kỹ sư kiểm tra."
-            )
-            response_data = DetectStatusResponse(
-                status="COMPLETED",
-                audit_id=audit_id,
-                anomaly=True,
-                severity=0.30,
-                suggested_action="ALERT_ONLY",
-                reasoning=reasoning,
-                confidence=0.95
-            )
-        elif is_prod and has_anomaly:
-            reasoning = (
-                f"Chi phí dịch vụ Production {affected_resource.split('/')[-1]} tăng vọt {ratio_increase} lần, "
-                f"đề xuất gắn thẻ Review kiểm tra thay vì tự động tắt máy ảo."
-            )
-            response_data = DetectStatusResponse(
-                status="COMPLETED",
-                audit_id=audit_id,
-                anomaly=True,
-                severity=0.85,
-                suggested_action="TAG_FOR_REVIEW",
-                reasoning=reasoning,
-                confidence=0.90,
-                details=AnomalyDetails(
-                    daily_waste_usd=daily_waste,
-                    runaway_days=runaway_days,
-                    affected_resource=affected_resource,
-                    ratio_increase=ratio_increase
-                )
-            )
-        elif has_anomaly:
-            # Configurable confidence calculation
-            weights = tenant_config.get("confidence_weights", {
-                "missing_tags": 0.3,
-                "idle_hours": 0.5,
-                "log_anomaly": 0.2
-            })
-            if not isinstance(weights, dict):
-                weights = weights.model_dump() if hasattr(weights, 'model_dump') else weights.__dict__
+        weights = tenant_config.get("confidence_weights", {
+            "missing_tags": 0.3,
+            "idle_hours": 0.5,
+            "log_anomaly": 0.2
+        })
+        if not isinstance(weights, dict):
+            weights = weights.model_dump() if hasattr(weights, 'model_dump') else weights.__dict__
 
-            confidence = weights.get("missing_tags", 0.3)
+        confidence = weights.get("missing_tags", 0.3)
+        
+        idle_weight = weights.get("idle_hours", 0.5)
+        if idle_hours >= tenant_config["idle_threshold_high"]:
+            confidence += idle_weight
+        elif idle_hours >= tenant_config["idle_threshold_normal"]:
+            confidence += (idle_weight * 0.6)
+        else:
+            confidence += (idle_weight * 0.2)
             
-            idle_weight = weights.get("idle_hours", 0.5)
-            if idle_hours >= tenant_config["idle_threshold_high"]:
-                confidence += idle_weight
-            elif idle_hours >= tenant_config["idle_threshold_normal"]:
-                confidence += (idle_weight * 0.6)
-            else:
-                confidence += (idle_weight * 0.2)
-                
-            if drain3_runaway_detected:
-                confidence += weights.get("log_anomaly", 0.2)
-                
-            confidence = round(min(1.0, confidence), 2)
+        if drain3_runaway_detected:
+            confidence += weights.get("log_anomaly", 0.2)
             
-            # Custom reasoning for fallback spawned resource ID (Spatial context)
-            if affected_resource.startswith("service-level-aggregate:"):
-                vpc = affected_resource.split(":")[-1]
-                reasoning = (
-                    f"Chi phí truyền dữ liệu liên mạng tăng vọt {ratio_increase} lần từ cụm mạng {vpc}, "
-                    f"gây lãng phí khoảng ${daily_waste}/ngày trên tài nguyên service-level-aggregate."
-                )
-            else:
-                log_miner_note = f" (Phát hiện Create API nhưng không có Stop/Delete trong {runaway_days} ngày qua)." if drain3_runaway_detected else ""
-                reasoning = (
-                    f"Chi phí cụm SageMaker Notebook tăng đột biến {ratio_increase} lần so với trung bình tuần trước, "
-                    f"phát sinh lãng phí khoảng ${daily_waste}/ngày do máy chạy không tải (idle) liên tục trong {runaway_days} ngày{log_miner_note}."
-                )
-                
+        confidence = round(min(1.0, confidence), 2)
+
+        if has_anomaly:
+            suggested_action, aws_cli_command, reasoning = generate_amazon_nova_reasons_and_commands(
+                affected_resource, service, env, daily_waste, runaway_days, ratio_increase, confidence, is_whitelisted, is_business_growth
+            )
             response_data = DetectStatusResponse(
                 status="COMPLETED",
                 audit_id=audit_id,
                 anomaly=True,
                 severity=0.85,
-                suggested_action="SCHEDULE_SHUTDOWN",
+                suggested_action=suggested_action,
                 reasoning=reasoning,
                 confidence=confidence,
                 details=AnomalyDetails(
                     daily_waste_usd=daily_waste,
                     runaway_days=runaway_days,
                     affected_resource=affected_resource,
-                    ratio_increase=ratio_increase
+                    ratio_increase=ratio_increase,
+                    aws_cli_command=aws_cli_command
                 )
             )
         else:

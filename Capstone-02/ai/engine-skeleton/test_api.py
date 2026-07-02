@@ -117,6 +117,11 @@ def test_scenario_2_runaway_training_dev():
     assert status_response.json()["suggested_action"] == "SCHEDULE_SHUTDOWN"
     # Use ASCII check to avoid Windows console codepage/encoding mismatch
     assert "idle" in status_response.json()["reasoning"]
+    
+    # Assert generated AWS CLI command is correct for SageMaker in dev environment
+    details = status_response.json()["details"]
+    assert details["aws_cli_command"] is not None
+    assert "aws sagemaker stop-notebook-instance" in details["aws_cli_command"]
 
 
 def test_scenario_3_prod_safety_guard():
@@ -136,6 +141,10 @@ def test_scenario_3_prod_safety_guard():
     assert status_response.json()["status"] == "COMPLETED"
     assert status_response.json()["anomaly"] is True
     assert status_response.json()["suggested_action"] == "TAG_FOR_REVIEW"
+    
+    # Assert generated AWS CLI command is None for production
+    details = status_response.json()["details"]
+    assert details["aws_cli_command"] is None
 
 
 def test_scenario_4_whitelist_bypass():
